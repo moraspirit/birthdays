@@ -1,6 +1,6 @@
 
 
-var schedule=require('node-schedule');
+var schedule=require('node-schedule'); //node-schedule library
 var mysql = require('mysql'); // mysql libaray
 
 /*******schedule time*******/
@@ -46,7 +46,7 @@ var task=schedule.scheduleJob(rule,function() {
         if (err)throw err;
 
 
-        
+
         for (var i = 0; i < rows.length; i++) {
             console.log(rows[i]["user_name"] + " : " + rows[i]["user_email"]);
         }
