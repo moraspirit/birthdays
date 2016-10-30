@@ -46,9 +46,11 @@ module.exports= {
                 console.log(rows[i]["user_name"] + " : " + rows[i]["user_email"]);
             }*/
 
-            //console.log(rows);
+            //set access token manuallay to access variable
+
             var access      ='EAACEdEose0cBAN6smSBP6g3I72o2ORazj4K9uKq6ZCgKKLjBdKdzkSfg58fRa33h1frEFYnUKNIZAzRnmvGpQAZATN9aLQf61GIMHshOrKWXzI0218pdiWEcS68F0ZCtKpRano8S2QigJrQyoSNrJMsfr1709ij3nsEmgkdOxwZDZD';
             var access_token='EAACEdEose0cBAGA3OoRw9CX8izjyeJjyUQTu5Q0ZAZBpAxYFH9EUBcFIMljIsjyKPqI8Fqz1AcVMsJMb7ukxZAlMBprwklFOS3YEoODfjg4ZC7DvXZAHvXWJHZC6vcFnZCSobw11YZC4cwrDwZAZCIPFxCDBpcGViVukNklNaGkymrvwZDZD';
+            
             fbpost.postFunction(rows,access);
 
 
