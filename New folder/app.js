@@ -1,6 +1,6 @@
-/**
- * Created by Dell-Pc on 9/29/2016.
- */
+
+
+var FB= require('fb');
 
 module.exports= {
 
@@ -8,6 +8,13 @@ module.exports= {
 
         var mysql = require('mysql'); //import mysql libaray
         var fbpost = require('./fbPostTest');
+        var appdata=require('./config');
+
+        /**** initial acces token - short live token/long live (60 days) token from graph api  ****/
+
+        const accessToken='EAAE7mskkFsUBAK0UiEtqjZA3gIZBxV831sT2AzDfbLX9Wbfk0mIhdJhl0JiCBOZC3dZBpnO5iH1NLZAtuElP7V8hjneC3UbasTJbtrGwFnaxmqO5B6Rv2ZCbZAFY253CoRkyEHgipMmf38Rerualw9mOHTZBOt9SZBecZD';
+        const pageName='Test1_page'
+
 
         /********create connection**********/
 
@@ -31,13 +38,13 @@ module.exports= {
         var date = new Date();
         var day = date.getDate();
         var month = date.getMonth() + 1;
-        console.log(month + "-" + day);
+        console.log(date.getFullYear()+"-"+month + "-" + day);
 
-        /*********querying and getiing data***********/
+        /*********querying and  data***********/
 
         var qstring = "SELECT user_name FROM user_details WHERE user_DOB  LIKE '%" + month + "-" + day + "'";
-//var qstring="SELECT * FROM user_details";
-        con.query(qstring, function (err, rows) {
+
+        con.query(qstring, function (err, userDetails) {
             if (err)throw err;
 
             /*console.log("Sender List");
@@ -48,20 +55,133 @@ module.exports= {
 
             //set access token manuallay to access variable
 
-            var access      ='EAACEdEose0cBAN6smSBP6g3I72o2ORazj4K9uKq6ZCgKKLjBdKdzkSfg58fRa33h1frEFYnUKNIZAzRnmvGpQAZATN9aLQf61GIMHshOrKWXzI0218pdiWEcS68F0ZCtKpRano8S2QigJrQyoSNrJMsfr1709ij3nsEmgkdOxwZDZD';
-            var access_token='EAACEdEose0cBAGA3OoRw9CX8izjyeJjyUQTu5Q0ZAZBpAxYFH9EUBcFIMljIsjyKPqI8Fqz1AcVMsJMb7ukxZAlMBprwklFOS3YEoODfjg4ZC7DvXZAHvXWJHZC6vcFnZCSobw11YZC4cwrDwZAZCIPFxCDBpcGViVukNklNaGkymrvwZDZD';
-            
-            fbpost.postFunction(rows,access);
+
+
+
+            var gettokenQuery='SELECT MAX(id),token FROM access_token';
+
+
+            (function getAccessToken (userDetails) {
+
+                /** getting previously used access token from db***/
+
+                con.query(gettokenQuery, function (err, rows) {
+
+                    /*** initial lookup for acesss-token in db if no token exist *****/
+
+                    if (err || rows[0].token==null)
+                    {
+                        FB.setAccessToken(accessToken);
+
+                        /***** access token renewal **/
+
+                        FB.api("/oauth/access_token",{client_id: appdata.FaceBook.appID, client_secret: appdata.FaceBook.appSecret,grant_type:'fb_exchange_token',fb_exchange_token: accessToken},function(res) {
+                            //console.log(res.access_token);
+
+
+                            FB.setAccessToken(res.access_token);
+
+                            /**** getting relevant page access token****/
+
+                            FB.api("me/accounts",function(res){
+
+                                for (key=0;key<res.data.length;key++) {
+
+                                    if(res.data[key].name==pageName){
+                                        fbpost.postFunction(userDetails,res.data[key].access_token);
+                                    }
+
+                                }
+
+                            });
+
+
+                            /**** insert new token to databasse *****/
+
+                            var insertQuery="INSERT INTO access_token(token) VALUES('"+res.access_token+"')";
+                            //var updateQuery="UPDATE access_token SET token='"+res.access_token+"' ORDER BY id DESC LIMIT 1";
+
+                            con.query(insertQuery,function(err,rows){
+                                if (err)throw err;
+
+                                /****terminate connection***********/
+
+                                con.end(function (err) {
+                                    //console.log(err);
+                                });
+
+                            });
+
+
+                        });
+                    }
+                    else
+                    {
+                        //console.log(rows[0].token);
+                        var newToken = rows[0].token;
+                        //callback(newToken,userDetails);
+
+                        FB.setAccessToken(newToken);
+
+                        /***** user access token renewal **/
+
+                        FB.api("/oauth/access_token",{client_id: appdata.FaceBook.appID, client_secret: appdata.FaceBook.appSecret,grant_type:'fb_exchange_token',fb_exchange_token: newToken},function(res) {
+                            //console.log(res.access_token);
+
+
+                            FB.setAccessToken(res.access_token);
+
+                            /**** getting relevant page access token****/
+
+                            FB.api("me/accounts",function(res){
+
+                                for (key=0;key<res.data.length;key++) {
+
+                                    if(res.data[key].name==pageName){
+                                        fbpost.postFunction(userDetails,res.data[key].access_token);
+                                    }
+
+                                }
+
+                            });
+
+                            /*** update previous(last used) user access token in db***/
+
+                            var updateQuery="UPDATE access_token SET token='"+res.access_token+"' ORDER BY id DESC LIMIT 1";
+
+                            con.query(updateQuery,function(err,rows){
+                                if (err)throw err;
+
+                                /****terminate connection***********/
+
+                                con.end(function (err) {
+                                    //console.log(err);
+                                });
+                            });
+
+
+
+                        });
+
+
+                    }
+
+
+
+
+
+                });
+
+            })(userDetails);
+
+
+
+
+
 
 
         });
 
-
-        /****terminate connection***********/
-
-        con.end(function (err) {
-            //console.log(err);
-        });
 
     }
 
